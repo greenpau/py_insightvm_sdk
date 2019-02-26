@@ -10,11 +10,15 @@ Versioning is specified in the URL and the base path of this API is: `https://<h
 
 ## Specification
 
-An <a target=\"_blank\" href=\"https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md\">OpenAPI v2</a> specification (also  known as Swagger 2) of this API is available. Tools such as <a target=\"_blank\" href=\"https://github.com/swagger-api/swagger-codegen\">swagger-codegen</a> can be used to generate an API client in the language of your choosing using this specification document.  <p class=\"openapi\">Download the specification: <a class=\"openapi-button\" target=\"_blank\" download=\"\" href=\"/api/3/json\"> Download </a></p> 
+An [OpenAPI v2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md) specification (also  known as
+Swagger 2) of this API is available. Tools such as [swagger-codegen](https://github.com/swagger-api/swagger-codegen)
+can be used to generate an API client in the language of your choosing using this specification document.
 
 ## Authentication
 
-Authorization to the API uses HTTP Basic Authorization  (see <a target=\"_blank\" href=\"https://www.ietf.org/rfc/rfc2617.txt\">RFC 2617</a> for more information). Requests must  supply authorization credentials in the `Authorization` header using a Base64 encoded hash of `\"username:password\"`.  <!-- ReDoc-Inject: <security-definitions> --> 
+Authorization to the API uses HTTP Basic Authorization  (see [RFC 2617](https://www.ietf.org/rfc/rfc2617.txt)
+for more information). Requests must  supply authorization credentials in the `Authorization` header using a
+Base64 encoded hash of `"username:password"`.
 
 ### 2FA
 
