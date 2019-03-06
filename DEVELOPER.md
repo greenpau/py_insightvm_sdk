@@ -1,5 +1,7 @@
 # Developer Notes
 
+## Installation
+
 First, install OpenJDK:
 
 ```bash
@@ -41,4 +43,32 @@ Next, switch to `py_insightvm_sdk` and generate a client library:
 
 ```bash
 make openapi
+```
+
+## Deployment
+
+Use the following command to install the library:
+
+```
+python setup.py install --user
+```
+
+If necessary, uninstall it:
+
+```
+pip uninstall py-insightvm-sdk
+```
+
+The `~/.py_insightvm_sdk.rc` holds the credentials for InsightVM API:
+
+```
+$ cat ~/.py_insightvm_sdk.rc
+[credentials]
+username = "ivmapi"
+password = "secret"
+
+[manager]
+host = "ivmconsole"
+port = "443"
+protocol = "https"
 ```
