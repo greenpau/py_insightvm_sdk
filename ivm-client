@@ -10,6 +10,7 @@ from __future__ import (absolute_import, division, print_function)
 import os
 import sys
 import argparse
+import yaml
 import json
 import time
 from py_insightvm_sdk.app_client import AppClient
@@ -32,10 +33,19 @@ def main():
     main_group = parser.add_argument_group(None)
     main_group.add_argument('-o', metavar='output', dest='output', type=argparse.FileType('w'),
                             default=sys.stdout, help='Write to output file (or stdout)')
+
     action_arg_group = parser.add_argument_group('Actions')
     action_group = action_arg_group.add_mutually_exclusive_group(required=True)
-    action_group.add_argument('--get-asset-groups', dest='get_asset_groups',
-                              action='store_true', help='get asset groups')
+    action_group.add_argument('--get-assets', dest='get_assets', action='store_true', help='get assets')
+    action_group.add_argument('--get-sites', dest='get_sites', action='store_true', help='get sites')
+    action_group.add_argument('--get-tags', dest='get_tags', action='store_true', help='get tags')
+    action_group.add_argument('--get-vulnerabilities', dest='get_vulnerabilities', action='store_true', help='get vulnerabilities')
+    action_group.add_argument('--get-asset-groups', dest='get_asset_groups', action='store_true', help='get asset groups')
+
+
+    main_group.add_argument('--format', dest='output_fmt', choices=['json', 'csv', 'yaml'],
+                            default="json", help='Output format')
+
     main_group.add_argument('--debug', dest='enable_debug', action='store_true',
                               help='Enable debugging')
     args = parser.parse_args()
@@ -43,13 +53,28 @@ def main():
     cli = AppClient()
     if args.enable_debug:
         cli.debug()
+    cli.output_fmt = args.output_fmt
     data = None
     if args.get_asset_groups:
         data = cli.get_asset_groups()
+    elif args.get_tags:
+        data = cli.get_tags()
+    elif args.get_sites:
+        data = cli.get_sites()
+    elif args.get_vulnerabilities:
+        data = cli.get_vulnerabilities()
+    elif args.get_assets:
+        data = cli.get_assets()
     else:
         raise Exception('parser', 'unsupported argument')
 
-    json.dump(data, args.output, sort_keys=True, indent=4, separators=(',', ': '))
+    if args.output_fmt == 'yaml':
+        yaml.dump(data, args.output, default_flow_style=False)
+    elif args.output_fmt == 'csv':
+        args.output.write(data)
+    else:
+        json.dump(data, args.output, sort_keys=True, indent=4, separators=(',', ': '))
+
     return
 
 if __name__ == '__main__':

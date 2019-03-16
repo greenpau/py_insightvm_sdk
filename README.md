@@ -26,3 +26,13 @@ Finally, test the library by getting the list of asset groups:
 ivm-client --get-asset-groups
 ```
 
+The other available commands are:
+
+```bash
+ivm-client --get-asset-groups --debug
+ivm-client --get-tags --debug
+ivm-client --get-tags --format yaml
+ivm-client --get-sites --format yaml --debug
+ivm-client --get-vulnerabilities --format yaml --debug
+ivm-client --get-assets --format yaml --debug -o /tmp/assets.yaml
+```
