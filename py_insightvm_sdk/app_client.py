@@ -9,6 +9,9 @@ See LICENSE for licensing details
 from __future__ import (absolute_import, division, print_function)
 import os
 import stat
+import re
+import json
+import yaml
 import logging
 
 # python 2 and python 3 compatibility library
@@ -47,6 +50,7 @@ class AppClient(object):
         self.api_configuration.proxy = None
         self.api_configuration.cert_file = None
         self.api_configuration.key_file = None
+        self.api_configuration.safe_chars_for_path_param = ''
         self.api_configuration.host = '%s://%s:%s' % (
             self.config.settings['protocol'],
             self.config.settings['host'],
@@ -240,14 +244,15 @@ class AppClient(object):
                         item['addresses'].append(entry)
                 item['assessed_for_policies'] = resource.assessed_for_policies
                 item['assessed_for_vulnerabilities'] = resource.assessed_for_vulnerabilities
-                item['host_name'] = resource.host_name
-                item['host_names'] = []
+                if resource.host_name:
+                    item['hostname'] = resource.host_name.lower()
+                item['hostnames'] = []
                 if resource.host_names:
                     for host_name in resource.host_names:
                         entry = {}
                         entry['name'] = host_name.name
                         entry['source'] = host_name.source
-                        item['host_names'].append(entry)
+                        item['hostnames'].append(entry)
                 item['id'] = resource.id
                 item['ip'] = resource.ip
                 item['ids'] = []
@@ -266,3 +271,140 @@ class AppClient(object):
             total_pages = api_response.page.total_pages
             page_cursor += 1
         return response
+
+    def get_assets_from_file(self, asset_file, asset_filters=None):
+        container = 'assets'
+        response = {
+            container: []
+        }
+        _filter = None
+        for asset_filter in asset_filters:
+            _valid_filter = False
+            for k in ['name', 'ip']:
+                if not asset_filter.startswith(k + ':'):
+                    continue
+                _valid_filter = True
+                if not _filter:
+                    _filter = {}
+                if k not in _filter:
+                    _filter[k] = []
+                _value = asset_filter.split(':')[1].lower()
+                _filter[k].append(_value)
+            if not _valid_filter:
+                raise Exception('get_assets_from_file', 'invalid filter: %s' % (asset_filter))
+        data = None
+        asset_ids = []
+        self.log.debug('asset reference file name: %s' % (asset_file.name))
+        if re.search('\.y[a]?ml$', asset_file.name):
+            data = yaml.load(asset_file)
+        else:
+            data = json.load(asset_file)
+        self.log.debug('loaded assets from: %s' % (asset_file.name))
+        assets = data['assets']
+        for asset in assets:
+            _continue = True
+            for k in ['name', 'ip']:
+                if k not in _filter:
+                    continue
+                for f in _filter[k]:
+                    if k == 'name' and 'hostname' in asset:
+                        if re.search(f, asset['hostname']):
+                            _continue = False
+                    elif k == 'ip':
+                        if f == asset['ip']:
+                            _continue = False
+                    else:
+                        pass
+            if _continue:
+                continue
+            asset_ids.append(asset['id'])
+        #return response
+        return asset_ids
+
+    def get_asset_by_id(self, asset_id=None):
+        api_instance = py_insightvm_sdk.AssetApi(self.api_client)
+        api_response = api_instance.get_asset(id=asset_id)
+        response = None
+        if self.output_fmt == 'csv':
+            response = {}
+        else:
+            response = yaml.load('%s' % (api_response))
+        if 'vulnerabilities' in response:
+            response['vulnerabilities_total'] = response['vulnerabilities'].copy()
+        response['vulnerabilities'] = self.get_vulnerability_ids_by_asset_id(asset_id)
+        return response
+
+
+    def get_vulnerability_ids_by_asset_id(self, asset_id=None):
+        response = []
+        api_instance = py_insightvm_sdk.VulnerabilityResultApi(self.api_client)
+        page_cursor = 0
+        total_pages = 0
+        page_size = 1000
+        sort_method = ['id', 'DESC']
+
+        while True:
+            if page_cursor > 0:
+                if page_cursor >= total_pages:
+                    break
+            api_response = api_instance.get_asset_vulnerabilities(asset_id, page=page_cursor, size=page_size, sort=sort_method)
+            for resource in api_response.resources:
+                item = {}
+                item['id'] = resource.id
+                item['since'] = resource.since
+                item['status'] = resource.status
+                response.append(item)
+            total_pages = api_response.page.total_pages
+            page_cursor += 1
+
+        new_response = []
+        api_instance = py_insightvm_sdk.VulnerabilityApi(self.api_client)
+        for entry in response:
+            try:
+                api_response = api_instance.get_vulnerability(entry['id'])
+                data = yaml.load('%s' % (api_response))
+                for k in data:
+                    entry[k] = data[k]
+            except:
+                pass
+            new_response.append(entry)
+
+        return new_response
+
+
+    def get_asset_data_from_file(self, asset_file, data_category):
+        data = None
+        output = []
+        self.log.debug('asset reference file name: %s' % (asset_file.name))
+        if re.search('\.y[a]?ml$', asset_file.name):
+            data = yaml.load(asset_file)
+        else:
+            data = json.load(asset_file)
+        container = None
+        headers = None
+        if data_category == 'vulnerabilities':
+            data = data['vulnerabilities']
+            headers = ['id', 'title', 'published']
+        elif data_category == 'services':
+            data = data['services']
+            headers = ['protocol', 'port', 'name', 'product']
+        elif data_category == 'software':
+            data = data['software']
+            headers = ['vendor', 'description', 'version']
+        else:
+            return 'None\n'
+
+        for item in data:
+
+            line = []
+            for header in headers:
+                if header in item:
+                    if item[header] == 'None':
+                       line.append('')
+                       continue
+                    line.append(str(item[header]))
+                else:
+                    line.append('')
+            output.append(';'.join(line))
+            
+        return '\n'.join(output) + '\n'

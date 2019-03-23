@@ -36,12 +36,26 @@ def main():
 
     action_arg_group = parser.add_argument_group('Actions')
     action_group = action_arg_group.add_mutually_exclusive_group(required=True)
+    action_group.add_argument('--get-asset', dest='get_asset', action='store_true', help='get data about a specific asset')
     action_group.add_argument('--get-assets', dest='get_assets', action='store_true', help='get assets')
     action_group.add_argument('--get-sites', dest='get_sites', action='store_true', help='get sites')
     action_group.add_argument('--get-tags', dest='get_tags', action='store_true', help='get tags')
     action_group.add_argument('--get-vulnerabilities', dest='get_vulnerabilities', action='store_true', help='get vulnerabilities')
     action_group.add_argument('--get-asset-groups', dest='get_asset_groups', action='store_true', help='get asset groups')
+    action_group.add_argument('--get-asset-by-id', dest='get_asset_by_id', metavar='ID', type=int,
+                              help='get data about a specific asset by its id')
+    action_group.add_argument('--asset-file',  metavar='FILENAME', dest='asset_file', type=argparse.FileType('r'),
+                              default=None, help='read data about a specific asset from a file')
 
+    filter_arg_group = parser.add_argument_group('References and Filtering')
+    filter_arg_group.add_argument('--asset-ref', metavar='FILENAME', dest='asset_ref', type=argparse.FileType('r'),
+                                  default=None,
+                                  help='Path to the file with asset references, i.e. output of --get-assets')
+    filter_arg_group.add_argument('--asset-data-category', dest='asset_data_category',
+                                  choices=['vulnerabilities','services','software'], default=None,
+                                  help='Asset data category')
+    filter_arg_group.add_argument('--filter', dest='obj_filters', metavar='KEY:VALUE',
+                                  action='append', help='Object filters, e.g. ip:1.1.1.1, name:nysrv1')
 
     main_group.add_argument('--format', dest='output_fmt', choices=['json', 'csv', 'yaml'],
                             default="json", help='Output format')
@@ -65,6 +79,19 @@ def main():
         data = cli.get_vulnerabilities()
     elif args.get_assets:
         data = cli.get_assets()
+    elif args.get_asset:
+        if not args.asset_ref:
+            raise Exception('parser', 'the --get-asset requires --asset-ref')
+        if not args.obj_filters:
+            raise Exception('parser', 'the --get-asset requires --filter')
+        data = cli.get_assets_from_file(args.asset_ref, args.obj_filters)
+    elif args.get_asset_by_id:
+        data = cli.get_asset_by_id(args.get_asset_by_id)
+    elif args.asset_file:
+        if not args.asset_data_category:
+            raise Exception('parser', 'unsupported argument')
+        data = cli.get_asset_data_from_file(args.asset_file, args.asset_data_category)
+        args.output_fmt = "csv"
     else:
         raise Exception('parser', 'unsupported argument')
 
