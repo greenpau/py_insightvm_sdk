@@ -5,6 +5,8 @@ gather and process information. This is an unofficial API client
 library written in Python for Rapid7's InsightVM vulnerability
 management platform.
 
+## Getting Started
+
 First, use the following command to install the library:
 
 ```bash
@@ -38,14 +40,16 @@ ivm-client --get-asset-groups --debug
 ivm-client --get-tags --debug
 ivm-client --get-tags --format yaml
 ivm-client --get-sites --format yaml --debug
-ivm-client --get-vulnerabilities --format yaml --debug
 ivm-client --get-assets --format yaml --debug -o /tmp/assets.yaml
+ivm-client --asset-ref /tmp/assets.yaml --get-vulnerabilities --format yaml
 ivm-client --get-asset --asset-ref /tmp/assets.yaml --filter "name:nysrv1" --format yaml --debug
 ```
 
 ## Asset Management
 
-The `ivm-client` has the option to get asset by it ID. For example, the below
+### Individual Assets
+
+The `ivm-client` has the option to get asset by its ID. For example, the below
 command fetches basic information about the asset with ID 444 and stores it
 in `444.yaml` file.
 
@@ -53,7 +57,7 @@ in `444.yaml` file.
 ivm-client --get-asset-by-id 444 --format yaml -o 444.yaml
 ```
 
-Next, a user may futher interrograte data by referencing that output file.
+Next, a user may further interrogate the data by referencing that output file.
 
 ```bash
 $ ivm-client --asset-file 444.yaml --asset-data-category vulnerabilities --debug | column -t -s";"
@@ -92,4 +96,12 @@ Microsoft               Microsoft Internet Information Services 8.5             
 Microsoft               Microsoft MSXML 6.30.9600.19198                                             6.30.9600.19198
 Microsoft               Microsoft MSXML 8.110.9600.19198                                            8.110.9600.19198
 Microsoft               Microsoft Visual Studio 2010 SP1                                            SP1
+```
+
+### High Risk Assets
+
+The following command produces a list of "Top 100" assets by "Risk Score":
+
+```bash
+$ ivm-client --asset-ref /tmp/assets.yaml --get-high-risk-asset-ids --limit 100 --format csv -o /tmp/high.risk.assets.yaml
 ```

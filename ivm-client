@@ -44,6 +44,8 @@ def main():
     action_group.add_argument('--get-asset-groups', dest='get_asset_groups', action='store_true', help='get asset groups')
     action_group.add_argument('--get-asset-by-id', dest='get_asset_by_id', metavar='ID', type=int,
                               help='get data about a specific asset by its id')
+    action_group.add_argument('--get-high-risk-asset-ids', dest='get_high_risk_asset_ids', action='store_true',
+                              help='get the IDs of high risk assets')
     action_group.add_argument('--asset-file',  metavar='FILENAME', dest='asset_file', type=argparse.FileType('r'),
                               default=None, help='read data about a specific asset from a file')
 
@@ -56,6 +58,14 @@ def main():
                                   help='Asset data category')
     filter_arg_group.add_argument('--filter', dest='obj_filters', metavar='KEY:VALUE',
                                   action='append', help='Object filters, e.g. ip:1.1.1.1, name:nysrv1')
+    filter_arg_group.add_argument('--with-vulnerabilities', dest='with_vulnerabilities',
+                                  action='store_true', help='add vulnerabilities to the output')
+    filter_arg_group.add_argument('--page-size', dest='page_size', metavar='NUMBER', type=int,
+                                  default=None, help='limit on the page size per request in a query')
+    filter_arg_group.add_argument('--page-limit', dest='page_limit', metavar='NUMBER', type=int,
+                                  default=None, help='limit on the number of pages per query')
+    filter_arg_group.add_argument('--limit', dest='limit', metavar='NUMBER', type=int,
+                                  default=None, help='limit the number of output items')
 
     main_group.add_argument('--format', dest='output_fmt', choices=['json', 'csv', 'yaml'],
                             default="json", help='Output format')
@@ -63,6 +73,16 @@ def main():
     main_group.add_argument('--debug', dest='enable_debug', action='store_true',
                               help='Enable debugging')
     args = parser.parse_args()
+
+    opts = {}
+    if args.page_size:
+        opts['page_size'] = args.page_size
+    if args.page_limit:
+        opts['page_limit'] = args.page_limit
+    if args.limit:
+        opts['limit'] = args.limit
+    if args.with_vulnerabilities:
+        opts['with_vulnerabilities'] = args.with_vulnerabilities
 
     cli = AppClient()
     if args.enable_debug:
@@ -76,9 +96,13 @@ def main():
     elif args.get_sites:
         data = cli.get_sites()
     elif args.get_vulnerabilities:
-        data = cli.get_vulnerabilities()
+        data = cli.get_vulnerabilities(opts)
     elif args.get_assets:
-        data = cli.get_assets()
+        data = cli.get_assets(opts)
+    elif args.get_high_risk_asset_ids:
+        if not args.asset_ref:
+            raise Exception('parser', 'the --get-asset requires --asset-ref')
+        data = cli.get_high_risk_asset_ids(args.asset_ref, opts)
     elif args.get_asset:
         if not args.asset_ref:
             raise Exception('parser', 'the --get-asset requires --asset-ref')

@@ -164,8 +164,7 @@ class AppClient(object):
             page_cursor += 1
         return response
 
-    def get_vulnerabilities(self):
-        return {'error': 'unsupported'}
+    def get_vulnerabilities(self, opts={}):
         container = 'vulnerabilities'
         response = {
             container: []
@@ -174,11 +173,18 @@ class AppClient(object):
         page_cursor = 0
         total_pages = 0
         page_size = 1000
+        page_limit = 1000000
+        if 'page_size' in opts:
+            page_size = opts['page_size']
+        if 'page_limit' in opts:
+            page_limit = opts['page_limit']
         sort_method = ['id', 'DESC']
 
         while True:
             if page_cursor > 0:
                 if page_cursor >= total_pages:
+                    break
+                if page_cursor >= page_limit:
                     break
             api_response = api_instance.get_vulnerabilities(page=page_cursor, size=page_size, sort=sort_method)
             for resource in api_response.resources:
@@ -202,7 +208,7 @@ class AppClient(object):
             page_cursor += 1
         return response
 
-    def get_assets(self):
+    def get_assets(self, opts={}):
         container = 'assets'
         response = {
             container: []
@@ -212,6 +218,10 @@ class AppClient(object):
         total_pages = 0
         page_size = 1000
         page_limit = 1000000
+        if 'page_size' in opts:
+            page_size = opts['page_size']
+        if 'page_limit' in opts:
+            page_limit = opts['page_limit']
         sort_method = ['id', 'DESC']
 
         while True:
@@ -267,9 +277,52 @@ class AppClient(object):
                 item['raw_risk_score'] = resource.raw_risk_score
                 item['risk_score'] = resource.risk_score
                 item['type'] = resource.type
+                if 'with_vulnerabilities' in opts:
+                    item['vulnerabilities'] = resource.vulnerabilities.__dict__
                 response[container].append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
+        return response
+
+    def get_high_risk_asset_ids(self, asset_file, opts={}):
+        from operator import itemgetter
+        container = 'assets'
+        response = {
+            container: []
+        }
+        data = None
+        asset_ids = []
+        self.log.debug('asset reference file name: %s' % (asset_file.name))
+        if re.search('\.y[a]?ml$', asset_file.name):
+            data = yaml.load(asset_file)
+        else:
+            data = json.load(asset_file)
+        self.log.debug('loaded assets from: %s' % (asset_file.name))
+        # From high to low
+        assets = sorted(data['assets'], key=itemgetter('risk_score'), reverse=True)
+        # From low to high
+        #assets = sorted(data['assets'], key=itemgetter('risk_score'))
+        limit = 2
+        if 'limit' in opts:
+            limit = opts['limit']
+        if len(assets) > limit:
+            assets = assets[:limit]
+
+        if self.output_fmt == 'csv':
+            lines = []
+            for asset in assets:
+                line = []
+                line.append(str(asset['id']))
+                line.append(str(asset['risk_score']))
+                if 'hostname' in asset:
+                    line.append(asset['hostname'])
+                else:
+                    line.append(asset['ip'])
+                line.append(asset['ip'])
+                lines.append(';'.join(line))
+            return '\n'.join(lines) + '\n' 
+
+        response[container] = assets
         return response
 
     def get_assets_from_file(self, asset_file, asset_filters=None):
