@@ -14,6 +14,7 @@ all:
 	@echo "Version: $(PKG_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
 	@echo "Build on $(BUILD_DATE) by $(BUILD_USER)"
 	@echo 'the only available options are: openapi, clean' || false
+	@sed -i 's/^VERSION = .*/VERSION = "'$(PKG_VERSION)'"/' setup.py
 
 clean:
 	@find . -name \*.pyc -delete
