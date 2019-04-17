@@ -52,7 +52,10 @@ def main():
     filter_arg_group = parser.add_argument_group('References and Filtering')
     filter_arg_group.add_argument('--asset-ref', metavar='FILENAME', dest='asset_ref', type=argparse.FileType('r'),
                                   default=None,
-                                  help='Path to the file with asset references, i.e. output of --get-assets')
+                                  help='The path to the file with asset references, i.e. output of --get-assets')
+    filter_arg_group.add_argument('--vuln-ref-dir',  metavar='DIR', dest='vuln_ref_dir',
+                                  default=None,
+                                  help='The path to the directory with vulnerabilities')
     filter_arg_group.add_argument('--asset-data-category', dest='asset_data_category',
                                   choices=['vulnerabilities','services','software'], default=None,
                                   help='Asset data category')
@@ -88,6 +91,7 @@ def main():
     if args.enable_debug:
         cli.debug()
     cli.output_fmt = args.output_fmt
+    cli.set_vuln_ref_dir(args.vuln_ref_dir)
     data = None
     if args.get_asset_groups:
         data = cli.get_asset_groups()
@@ -110,7 +114,7 @@ def main():
             raise Exception('parser', 'the --get-asset requires --filter')
         data = cli.get_assets_from_file(args.asset_ref, args.obj_filters)
     elif args.get_asset_by_id:
-        data = cli.get_asset_by_id(args.get_asset_by_id)
+        data = cli.get_asset_by_id(args.get_asset_by_id, opts)
     elif args.asset_file:
         if not args.asset_data_category:
             raise Exception('parser', 'unsupported argument')

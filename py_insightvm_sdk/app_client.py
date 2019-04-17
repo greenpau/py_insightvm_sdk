@@ -62,6 +62,7 @@ class AppClient(object):
             header_value=self.config.get_authorization_value(),
         )
         self.output_fmt = 'json'
+        self.vuln_ref_dir = None
         return
 
     def debug(self):
@@ -74,6 +75,15 @@ class AppClient(object):
         self.config.log.setLevel(logging.DEBUG)
         self.config.debug_enabled = True
         return
+
+    def set_vuln_ref_dir(self, fp=None):
+        if not fp:
+            return
+        if not os.path.isdir(fp):
+            raise Exception('set_vuln_ref_dir', 'invalid path: %s' % (fp))
+        if not os.access(fp, os.R_OK):
+            raise Exception('set_vuln_ref_dir', 'path  is not readable: %s' % (fp))
+        self.vuln_ref_dir = fp
 
     def get_asset_groups(self):
         response = {
@@ -374,7 +384,7 @@ class AppClient(object):
         #return response
         return asset_ids
 
-    def get_asset_by_id(self, asset_id=None):
+    def get_asset_by_id(self, asset_id=None, opts={}):
         api_instance = py_insightvm_sdk.AssetApi(self.api_client)
         api_response = api_instance.get_asset(id=asset_id)
         response = None
@@ -384,9 +394,40 @@ class AppClient(object):
             response = yaml.load('%s' % (api_response))
         if 'vulnerabilities' in response:
             response['vulnerabilities_total'] = response['vulnerabilities'].copy()
-        response['vulnerabilities'] = self.get_vulnerability_ids_by_asset_id(asset_id)
+
+        vulnerabilities = []
+        vulnerability_ids = self.get_vulnerability_ids_by_asset_id(asset_id)
+        for vulnerability in vulnerability_ids:
+            if 'id' not in vulnerability:
+                continue
+            v = self.get_vulnerability_by_id(vulnerability['id'])
+            vulnerabilities.append(v)
+        response['vulnerabilities'] = vulnerabilities
         return response
 
+    def get_vulnerability_by_id(self, vulnerability_id=None):
+        response = {}
+        if not vulnerability_id:
+            return response
+        vuln_ref_file = None
+        if self.vuln_ref_dir:
+            vuln_ref_file = os.path.join(self.vuln_ref_dir, vulnerability_id + '.yaml')
+            if os.path.exists(vuln_ref_file):
+                # read data from file
+                with open(vuln_ref_file) as f:
+                    response = yaml.load(f);
+                return response
+        api_instance = py_insightvm_sdk.VulnerabilityApi(self.api_client)
+        try:
+            api_response = api_instance.get_vulnerability(vulnerability_id)
+            response = yaml.load('%s' % (api_response))
+        except:
+            pass
+        if vuln_ref_file:
+            # write data to file
+            with open(vuln_ref_file, 'w') as f:
+                yaml.safe_dump(response, f, default_flow_style=False, encoding='utf-8', allow_unicode=True);
+        return response
 
     def get_vulnerability_ids_by_asset_id(self, asset_id=None):
         response = []
@@ -409,21 +450,7 @@ class AppClient(object):
                 response.append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
-
-        new_response = []
-        api_instance = py_insightvm_sdk.VulnerabilityApi(self.api_client)
-        for entry in response:
-            try:
-                api_response = api_instance.get_vulnerability(entry['id'])
-                data = yaml.load('%s' % (api_response))
-                for k in data:
-                    entry[k] = data[k]
-            except:
-                pass
-            new_response.append(entry)
-
-        return new_response
-
+        return response
 
     def get_asset_data_from_file(self, asset_file, data_category):
         data = None
