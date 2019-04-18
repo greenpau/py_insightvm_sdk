@@ -391,19 +391,25 @@ class AppClient(object):
         if self.output_fmt == 'csv':
             response = {}
         else:
-            response = yaml.load('%s' % (api_response))
-        if 'vulnerabilities' in response:
-            response['vulnerabilities_total'] = response['vulnerabilities'].copy()
-
-        vulnerabilities = []
-        vulnerability_ids = self.get_vulnerability_ids_by_asset_id(asset_id)
-        for vulnerability in vulnerability_ids:
-            if 'id' not in vulnerability:
-                continue
-            v = self.get_vulnerability_by_id(vulnerability['id'])
-            vulnerabilities.append(v)
-        response['vulnerabilities'] = vulnerabilities
-        return response
+            data = '%s' % (api_response)
+            try:
+                response = yaml.load(data)
+            except:
+                data = data.replace(': Core', ' Core')
+                response = yaml.load(data)
+        if response:
+            if 'vulnerabilities' in response:
+                response['vulnerabilities_total'] = response['vulnerabilities'].copy()
+                vulnerabilities = []
+                vulnerability_ids = self.get_vulnerability_ids_by_asset_id(asset_id)
+                for vulnerability in vulnerability_ids:
+                    if 'id' not in vulnerability:
+                        continue
+                    v = self.get_vulnerability_by_id(vulnerability['id'])
+                    vulnerabilities.append(v)
+                response['vulnerabilities'] = vulnerabilities
+            return response
+        return None
 
     def get_vulnerability_by_id(self, vulnerability_id=None):
         response = {}
