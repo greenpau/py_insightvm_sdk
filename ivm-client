@@ -69,6 +69,8 @@ def main():
                                   default=None, help='limit on the number of pages per query')
     filter_arg_group.add_argument('--limit', dest='limit', metavar='NUMBER', type=int,
                                   default=None, help='limit the number of output items')
+    filter_arg_group.add_argument('--without-header', dest='without_header',
+                                  action='store_true', help='outputs data as a list of objects')
 
     main_group.add_argument('--format', dest='output_fmt', choices=['json', 'csv', 'yaml'],
                             default="json", help='Output format')
@@ -86,6 +88,8 @@ def main():
         opts['limit'] = args.limit
     if args.with_vulnerabilities:
         opts['with_vulnerabilities'] = args.with_vulnerabilities
+    if args.without_header:
+        opts['without_header'] = args.without_header
 
     cli = AppClient()
     if args.enable_debug:

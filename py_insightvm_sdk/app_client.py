@@ -232,6 +232,9 @@ class AppClient(object):
             page_size = opts['page_size']
         if 'page_limit' in opts:
             page_limit = opts['page_limit']
+        if 'limit' in opts:
+            page_limit = 1
+            page_size = opts['limit']
         sort_method = ['id', 'DESC']
 
         while True:
@@ -288,10 +291,16 @@ class AppClient(object):
                 item['risk_score'] = resource.risk_score
                 item['type'] = resource.type
                 if 'with_vulnerabilities' in opts:
-                    item['vulnerabilities'] = resource.vulnerabilities.__dict__
+                    vulnerabilities = resource.vulnerabilities.__dict__
+                    item['vulnerabilities_total'] = {}
+                    for v in vulnerabilities:
+                        if v.startswith('_'):
+                            item['vulnerabilities_total'][v.lstrip('_')] = vulnerabilities[v]
                 response[container].append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
+        if 'without_header' in opts:
+            return response[container]
         return response
 
     def get_high_risk_asset_ids(self, asset_file, opts={}):
