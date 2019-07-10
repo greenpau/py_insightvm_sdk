@@ -85,9 +85,10 @@ class AppClient(object):
             raise Exception('set_vuln_ref_dir', 'path  is not readable: %s' % (fp))
         self.vuln_ref_dir = fp
 
-    def get_asset_groups(self):
+    def get_asset_groups(self, opts={}):
+        container = 'asset_groups'
         response = {
-            'asset_groups': []
+            container: []
         }
         api_instance = py_insightvm_sdk.AssetGroupApi(self.api_client)
         page_cursor = 0
@@ -106,12 +107,14 @@ class AppClient(object):
                 item['type'] = resource.type
                 if resource.description:
                     item['description'] = resource.description
-                response['asset_groups'].append(item)
+                response[container].append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
+        if 'without_header' in opts:
+            return response[container]
         return response
 
-    def get_tags(self):
+    def get_tags(self, opts={}):
         container = 'tags'
         response = {
             container: []
@@ -137,10 +140,12 @@ class AppClient(object):
                 response[container].append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
+        if 'without_header' in opts:
+            return response[container]
         return response
 
 
-    def get_sites(self):
+    def get_sites(self, opts={}):
         container = 'sites'
         response = {
             container: []
@@ -172,6 +177,8 @@ class AppClient(object):
                 response[container].append(item)
             total_pages = api_response.page.total_pages
             page_cursor += 1
+        if 'without_header' in opts:
+            return response[container]
         return response
 
     def get_vulnerabilities(self, opts={}):

@@ -27,6 +27,14 @@ port = "443"
 protocol = "https"
 ```
 
+The tool also supports using environment variables instead of `.rc` file:
+
+```bash
+export RAPID7_IVM_HOST="ivmconsole"
+export RAPID7_IVM_USER="ivmapi"
+export RAPID7_IVM_PWD="secret"
+```
+
 Finally, test the library by getting the list of asset groups:
 
 ```bash

@@ -98,11 +98,11 @@ def main():
     cli.set_vuln_ref_dir(args.vuln_ref_dir)
     data = None
     if args.get_asset_groups:
-        data = cli.get_asset_groups()
+        data = cli.get_asset_groups(opts)
     elif args.get_tags:
-        data = cli.get_tags()
+        data = cli.get_tags(opts)
     elif args.get_sites:
-        data = cli.get_sites()
+        data = cli.get_sites(opts)
     elif args.get_vulnerabilities:
         data = cli.get_vulnerabilities(opts)
     elif args.get_assets:
