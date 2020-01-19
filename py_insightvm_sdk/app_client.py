@@ -13,6 +13,10 @@ import re
 import json
 import yaml
 import logging
+import csv
+from datetime import datetime
+from copy import deepcopy
+from io import BytesIO as StringIO
 
 # python 2 and python 3 compatibility library
 import six
@@ -180,6 +184,82 @@ class AppClient(object):
         if 'without_header' in opts:
             return response[container]
         return response
+
+
+    def get_scans(self, opts={'delimeter': ';'}):
+        container = 'scans'
+        is_running_only = False
+        if 'is_running_only' in opts:
+            is_running_only = opts['is_running_only']
+        required_fields = [
+            'duration', 'end_time', 'engine_id', 'engine_name',
+            'message', 'scan_name', 'scan_type', 'start_time', 'started_by',
+            'status', 'site_name'
+        ]
+        response = {
+            container: []
+        }
+        items = []
+        api_instance = py_insightvm_sdk.ScanApi(self.api_client)
+        page_cursor = 0
+        total_pages = 0
+        page_size = 500
+        sort_method = ['id', 'DESC']
+
+        while True:
+            if page_cursor > 0:
+                if page_cursor >= total_pages:
+                    break
+            api_response = api_instance.get_scans(active=is_running_only, page=page_cursor, size=page_size, sort=sort_method)
+            for resource in api_response.resources:
+                item = {}
+                item['assets'] = resource.assets
+                for k in ['assets', 'id', 'site_id', 'vulnerabilities']:
+                    item[k] = getattr(resource, k, None)
+                for k in required_fields:
+                    item[k] = str(getattr(resource, k, 'None'))
+                for link in resource.links:
+                    if 'links' not in item:
+                        item['links'] = []
+                    item['links'].append(link.href)
+                item['vulnerabilities'] = {}
+                for k in ['critical', 'moderate', 'severe', 'total']:
+                    item['vulnerabilities'][k] =  getattr(resource.vulnerabilities, k, 0)
+                if item['scan_type'] == 'Agent':
+                    continue
+                items.append(item)
+            total_pages = api_response.page.total_pages
+            page_cursor += 1
+
+        if self.output_fmt == 'csv':
+            local_memory = StringIO()
+            csv_writer = csv.writer(local_memory)
+            required_fields = [
+                'id', 'start_time', 'end_time', 'duration', 'assets', 'engine_id',
+                'engine_name', 'site_name', 'scan_name', 'scan_type', 'message',
+                'status', 'started_by'
+            ]
+            csv_headers = deepcopy(required_fields)
+            for k in ['total', 'moderate', 'severe', 'critical']:
+                csv_headers.append(k + '_vulnerabilities')
+            if 'without_header' not in opts:
+                csv_writer.writerow(csv_headers)
+            for item in items:
+                line = []
+                for k in required_fields:
+                    line.append(item[k])
+                for k in ['total', 'moderate', 'severe', 'critical']:
+                    line.append(item['vulnerabilities'][k])
+                csv_writer.writerow(line)
+            csv_data = local_memory.getvalue()
+            local_memory.close()
+            return csv_data
+
+        response[container] = items
+        if 'without_header' in opts:
+            return response[container]
+        return response
+
 
     def get_vulnerabilities(self, opts={}):
         container = 'vulnerabilities'
@@ -510,3 +590,21 @@ class AppClient(object):
             output.append(';'.join(line))
             
         return '\n'.join(output) + '\n'
+
+    def _serialize_json(self, data):
+        if isinstance(data, (dict)):
+            new_data = {}
+            for k in data:
+                new_data[k] = self._serialize_json(data[k])
+            return new_data
+        if isinstance(data, (list)):
+            new_data = []
+            for entry in data:
+                new_data.append(self._serialize_json(entry))
+            return new_data
+        elif isinstance(data, (datetime)):
+            return data.isoformat()
+        else:
+            pass
+        return data
+

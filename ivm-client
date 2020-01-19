@@ -39,6 +39,7 @@ def main():
     action_group.add_argument('--get-asset', dest='get_asset', action='store_true', help='get data about a specific asset')
     action_group.add_argument('--get-assets', dest='get_assets', action='store_true', help='get assets')
     action_group.add_argument('--get-sites', dest='get_sites', action='store_true', help='get sites')
+    action_group.add_argument('--get-scans', dest='get_scans', action='store_true', help='get scans')
     action_group.add_argument('--get-tags', dest='get_tags', action='store_true', help='get tags')
     action_group.add_argument('--get-vulnerabilities', dest='get_vulnerabilities', action='store_true', help='get vulnerabilities')
     action_group.add_argument('--get-asset-groups', dest='get_asset_groups', action='store_true', help='get asset groups')
@@ -54,7 +55,7 @@ def main():
                                   default=None,
                                   help='The path to the file with asset references, i.e. output of --get-assets')
     filter_arg_group.add_argument('--vuln-ref-dir',  metavar='DIR', dest='vuln_ref_dir',
-                                  default=None,
+                                       default=None,
                                   help='The path to the directory with vulnerabilities')
     filter_arg_group.add_argument('--asset-data-category', dest='asset_data_category',
                                   choices=['vulnerabilities','services','software'], default=None,
@@ -74,12 +75,17 @@ def main():
 
     main_group.add_argument('--format', dest='output_fmt', choices=['json', 'csv', 'yaml'],
                             default="json", help='Output format')
+    main_group.add_argument('--csv-delimeter', dest='csv_delimeter', default=";", help='CSV delimeter')
 
     main_group.add_argument('--debug', dest='enable_debug', action='store_true',
                               help='Enable debugging')
     args = parser.parse_args()
 
     opts = {}
+    if args.csv_delimeter:
+        opts['delimeter'] = args.csv_delimeter
+    else:
+        opts['delimeter'] = ';'
     if args.page_size:
         opts['page_size'] = args.page_size
     if args.page_limit:
@@ -103,6 +109,8 @@ def main():
         data = cli.get_tags(opts)
     elif args.get_sites:
         data = cli.get_sites(opts)
+    elif args.get_scans:
+        data = cli.get_scans(opts)
     elif args.get_vulnerabilities:
         data = cli.get_vulnerabilities(opts)
     elif args.get_assets:
