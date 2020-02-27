@@ -18,7 +18,7 @@ all:
 
 clean:
 	@find . -name \*.pyc -delete
-	@rm -rf dist/
+	@rm -rf dist/ build/
 
 openapi:
 	@mkdir -p ./${PKG_NAME}/client

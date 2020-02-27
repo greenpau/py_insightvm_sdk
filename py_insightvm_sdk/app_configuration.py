@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -10,8 +10,12 @@ from __future__ import (absolute_import, division, print_function)
 import os
 import stat
 import logging
-import ConfigParser
+try:
+    from configparser import RawConfigParser
+except ImportError:
+    from ConfigParser import RawConfigParser  # ver. < 3.0
 import base64
+import pprint
 
 class AppConfiguration(object):
     '''
@@ -71,7 +75,7 @@ class AppConfiguration(object):
         ''' Handle configuration file '''
         if _has_cfg_file:
             self.cfg_file = cfg_file
-            cfg_parser = ConfigParser.RawConfigParser()
+            cfg_parser = RawConfigParser()
             cfg_parser.read(cfg_file)
             for cfg_key_pair in self.cfg_key_pairs:
                 cfg_section, cfg_key = cfg_key_pair.split(':')
@@ -131,4 +135,5 @@ class AppConfiguration(object):
         for k in ['username', 'password']:
             if k not in self.settings:
                 return None
-        return 'Basic ' + base64.b64encode('%s:%s' % (self.settings['username'], self.settings['password']))
+        pwd_str = '%s:%s' % (self.settings['username'], self.settings['password'])
+        return 'Basic '.encode("utf-8") + base64.b64encode(pwd_str.encode("utf-8"))

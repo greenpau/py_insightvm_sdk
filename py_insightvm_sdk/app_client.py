@@ -72,8 +72,6 @@ class AppClient(object):
     def debug(self):
         if self.debug_enabled:
             return
-        import httplib
-        httplib.HTTPConnection.debuglevel=5
         self.log.setLevel(logging.DEBUG)
         self.debug_enabled = True
         self.config.log.setLevel(logging.DEBUG)
